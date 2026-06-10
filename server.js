@@ -1,0 +1,354 @@
+import express from "express";
+import cors from "cors";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import sqlite3 from "sqlite3";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const databaseDir = path.join(__dirname, "data");
+const databasePath = path.join(databaseDir, "gadgethive.sqlite");
+
+if (!fs.existsSync(databaseDir)) {
+  fs.mkdirSync(databaseDir, { recursive: true });
+}
+
+const db = new sqlite3.Database(databasePath);
+const app = express();
+const PORT = process.env.PORT || 4000;
+
+app.use(cors());
+app.use(express.json());
+
+const runAsync = (sql, params = []) =>
+  new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+      if (err) return reject(err);
+      resolve(this);
+    });
+  });
+
+const getAsync = (sql, params = []) =>
+  new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => {
+      if (err) return reject(err);
+      resolve(row);
+    });
+  });
+
+const allAsync = (sql, params = []) =>
+  new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+      if (err) return reject(err);
+      resolve(rows);
+    });
+  });
+
+const formatProduct = (row) => ({
+  id: row.id,
+  name: row.name,
+  category: row.category,
+  price: row.price,
+  originalPrice: row.original_price,
+  image: row.image_url,
+  description: row.description,
+  rating: row.rating,
+  reviews: row.review_count,
+  inStock: Boolean(row.in_stock),
+  featured: Boolean(row.featured),
+  specs: JSON.parse(row.specs || "[]"),
+});
+
+const initDatabase = async () => {
+  await runAsync(`PRAGMA foreign_keys = ON;`);
+
+  await runAsync(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      slug TEXT UNIQUE NOT NULL,
+      description TEXT
+    );
+  `);
+
+  await runAsync(`
+    CREATE TABLE IF NOT EXISTS products (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      category TEXT NOT NULL,
+      price REAL NOT NULL,
+      original_price REAL,
+      image_url TEXT,
+      rating REAL DEFAULT 0,
+      review_count INTEGER DEFAULT 0,
+      in_stock INTEGER DEFAULT 1,
+      featured INTEGER DEFAULT 0,
+      specs TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await runAsync(`
+    CREATE TABLE IF NOT EXISTS customers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      first_name TEXT NOT NULL,
+      last_name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      phone TEXT NOT NULL,
+      address TEXT,
+      city TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await runAsync(`
+    CREATE TABLE IF NOT EXISTS orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_id INTEGER,
+      order_number TEXT UNIQUE NOT NULL,
+      status TEXT DEFAULT 'pending',
+      payment_method TEXT,
+      subtotal REAL NOT NULL,
+      shipping_cost REAL DEFAULT 0,
+      total REAL NOT NULL,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (customer_id) REFERENCES customers(id)
+    );
+  `);
+
+  await runAsync(`
+    CREATE TABLE IF NOT EXISTS order_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      quantity INTEGER NOT NULL,
+      unit_price REAL NOT NULL,
+      total_price REAL NOT NULL,
+      FOREIGN KEY (order_id) REFERENCES orders(id),
+      FOREIGN KEY (product_id) REFERENCES products(id)
+    );
+  `);
+
+  const countRow = await getAsync(`SELECT COUNT(*) as count FROM products;`);
+  if (countRow?.count === 0) {
+    const { products, categories } = await import("./src/data/products.js");
+
+    const categoryStmt = await runAsync(`BEGIN TRANSACTION;`);
+    for (const category of categories) {
+      await runAsync(
+        `INSERT OR IGNORE INTO categories (name, slug, description) VALUES (?, ?, ?);`,
+        [category.name, category.id, category.description || ""],
+      );
+    }
+    await runAsync(`COMMIT;`);
+
+    await runAsync(`BEGIN TRANSACTION;`);
+    for (const product of products) {
+      await runAsync(
+        `INSERT INTO products (id, name, description, category, price, original_price, image_url, rating, review_count, in_stock, featured, specs)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+        [
+          product.id,
+          product.name,
+          product.description,
+          product.category,
+          product.price,
+          product.originalPrice,
+          product.image,
+          product.rating,
+          product.reviews,
+          product.inStock ? 1 : 0,
+          product.featured ? 1 : 0,
+          JSON.stringify(product.specs || []),
+        ],
+      );
+    }
+    await runAsync(`COMMIT;`);
+  }
+};
+
+app.get("/api/categories", async (req, res) => {
+  try {
+    const rows = await allAsync(
+      `SELECT slug, name FROM categories ORDER BY name ASC;`,
+    );
+    res.json(rows.map((row) => ({ id: row.slug, name: row.name })));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/products", async (req, res) => {
+  try {
+    const category = req.query.category;
+    let rows;
+    if (category) {
+      rows = await allAsync(
+        `SELECT * FROM products WHERE category = ? ORDER BY id DESC;`,
+        [category],
+      );
+    } else {
+      rows = await allAsync(`SELECT * FROM products ORDER BY id DESC;`);
+    }
+    res.json(rows.map(formatProduct));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/products/:id", async (req, res) => {
+  try {
+    const row = await getAsync(`SELECT * FROM products WHERE id = ?;`, [
+      req.params.id,
+    ]);
+    if (!row) return res.status(404).json({ error: "Product not found" });
+    res.json(formatProduct(row));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/products", async (req, res) => {
+  try {
+    const {
+      name,
+      category,
+      price,
+      originalPrice,
+      image,
+      description,
+      rating,
+      reviews,
+      featured,
+      specs,
+    } = req.body;
+    const nextIdRow = await getAsync(
+      `SELECT COALESCE(MAX(id), 0) + 1 AS nextId FROM products;`,
+    );
+    const nextId = nextIdRow.nextId;
+    await runAsync(
+      `INSERT INTO products (id, name, category, price, original_price, image_url, description, rating, review_count, in_stock, featured, specs)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?);`,
+      [
+        nextId,
+        name,
+        category,
+        price,
+        originalPrice,
+        image,
+        description,
+        rating,
+        reviews,
+        featured ? 1 : 0,
+        JSON.stringify(specs || []),
+      ],
+    );
+    const newProduct = await getAsync(`SELECT * FROM products WHERE id = ?;`, [
+      nextId,
+    ]);
+    res.status(201).json(formatProduct(newProduct));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/products/:id", async (req, res) => {
+  try {
+    await runAsync(`DELETE FROM products WHERE id = ?;`, [req.params.id]);
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/orders", async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      address,
+      city,
+      paymentMethod,
+      notes,
+      items,
+      subtotal,
+      total,
+    } = req.body;
+    if (!items || items.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "Order must include at least one item." });
+    }
+
+    await runAsync(`BEGIN TRANSACTION;`);
+    let customer = await getAsync(`SELECT * FROM customers WHERE email = ?;`, [
+      email,
+    ]);
+    if (!customer) {
+      const customerResult = await runAsync(
+        `INSERT INTO customers (first_name, last_name, email, phone, address, city)
+         VALUES (?, ?, ?, ?, ?, ?);`,
+        [firstName, lastName, email, phone, address, city],
+      );
+      customer = await getAsync(`SELECT * FROM customers WHERE id = ?;`, [
+        customerResult.lastID,
+      ]);
+    } else {
+      await runAsync(
+        `UPDATE customers SET first_name = ?, last_name = ?, phone = ?, address = ?, city = ? WHERE id = ?;`,
+        [firstName, lastName, phone, address, city, customer.id],
+      );
+    }
+
+    const orderNumber = `GH-${Date.now().toString(36).toUpperCase()}`;
+    const orderResult = await runAsync(
+      `INSERT INTO orders (customer_id, order_number, payment_method, subtotal, shipping_cost, total, notes)
+       VALUES (?, ?, ?, ?, 0, ?, ?);`,
+      [customer.id, orderNumber, paymentMethod, subtotal, total, notes],
+    );
+
+    const orderId = orderResult.lastID;
+    for (const item of items) {
+      await runAsync(
+        `INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price)
+         VALUES (?, ?, ?, ?, ?);`,
+        [
+          orderId,
+          item.id,
+          item.quantity,
+          item.price,
+          item.price * item.quantity,
+        ],
+      );
+    }
+
+    await runAsync(`COMMIT;`);
+    res.status(201).json({ orderNumber });
+  } catch (error) {
+    await runAsync(`ROLLBACK;`).catch(() => {});
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+initDatabase()
+  .then(() => {
+    app.listen(PORT, () => {
+      // eslint-disable-next-line no-console
+      console.log(`Backend API running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((error) => {
+    // eslint-disable-next-line no-console
+    console.error("Failed to initialize database:", error);
+    process.exit(1);
+  });

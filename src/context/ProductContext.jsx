@@ -1,0 +1,94 @@
+import { createContext, useContext, useEffect, useState } from "react";
+import { products as initialProducts } from "../data/products";
+
+const ProductContext = createContext();
+
+export const ProductProvider = ({ children }) => {
+  const [products, setProducts] = useState(initialProducts);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch("/api/products");
+        if (!response.ok) throw new Error("Failed to fetch products");
+        const data = await response.json();
+        setProducts(data);
+      } catch (error) {
+        console.warn("Failed to load product data from API:", error);
+        setProducts(initialProducts);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  const addProduct = async (productData) => {
+    try {
+      const response = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(productData),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to add product");
+      }
+      const newProduct = await response.json();
+      setProducts((prev) => [newProduct, ...prev]);
+    } catch (error) {
+      console.error("Product add error:", error);
+      throw error;
+    }
+  };
+
+  const removeProduct = async (productId) => {
+    try {
+      const response = await fetch(`/api/products/${productId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok && response.status !== 204) {
+        throw new Error("Failed to remove product");
+      }
+      setProducts((prev) => prev.filter((product) => product.id !== productId));
+    } catch (error) {
+      console.error("Product remove error:", error);
+      throw error;
+    }
+  };
+
+  const getProductById = (id) =>
+    products.find((product) => product.id === parseInt(id, 10));
+
+  const getProductsByCategory = (category) => {
+    if (!category || category === "all") return products;
+    return products.filter((product) => product.category === category);
+  };
+
+  const getFeaturedProducts = () =>
+    products.filter((product) => product.featured);
+
+  const getDiscountedProducts = () =>
+    products.filter((product) => product.originalPrice > product.price);
+
+  return (
+    <ProductContext.Provider
+      value={{
+        products,
+        addProduct,
+        removeProduct,
+        getProductById,
+        getProductsByCategory,
+        getFeaturedProducts,
+        getDiscountedProducts,
+      }}
+    >
+      {children}
+    </ProductContext.Provider>
+  );
+};
+
+export const useProducts = () => {
+  const context = useContext(ProductContext);
+  if (!context)
+    throw new Error("useProducts must be used within ProductProvider");
+  return context;
+};
