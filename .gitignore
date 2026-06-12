@@ -11,8 +11,13 @@ dist
 build
 out
 
-# Misc
-.DS_Store
+# Database
+data/
+gadgethive.sqlite
+*.sqlite
+*.db
+
+# Environment
 .env
 .env.local
 .env.development.local
@@ -35,3 +40,4 @@ lerna-debug.log*
 
 # OS
 Thumbs.db
+.DS_Store

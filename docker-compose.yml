@@ -1,20 +1,56 @@
 version: "3.8"
 
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: gadgethive-db
+    environment:
+      POSTGRES_DB: gadgethive
+      POSTGRES_USER: gadgethive
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me_in_production}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gadgethive"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: gadgethive-backend
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      JWT_SECRET: ${JWT_SECRET:-change_me_in_production}
+      DATABASE_URL: postgresql://gadgethive:${DB_PASSWORD:-change_me_in_production}@db:5432/gadgethive
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   frontend:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: gadgethive-frontend
     ports:
       - "3000:80"
     depends_on:
       - backend
     restart: unless-stopped
 
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
-    ports:
-      - "4000:4000"
-    restart: unless-stopped
+volumes:
+  db_data:
