@@ -1,9 +1,13 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 import { products as initialProducts } from "../data/products";
+import { useAuth } from "./useAuth";
 
 const ProductContext = createContext();
 
+export { ProductContext };
+
 export const ProductProvider = ({ children }) => {
+  const { token } = useAuth();
   const [products, setProducts] = useState(initialProducts);
 
   useEffect(() => {
@@ -23,10 +27,13 @@ export const ProductProvider = ({ children }) => {
   }, []);
 
   const addProduct = async (productData) => {
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
     try {
       const response = await fetch("/api/products", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(productData),
       });
       if (!response.ok) {
@@ -41,9 +48,13 @@ export const ProductProvider = ({ children }) => {
   };
 
   const removeProduct = async (productId) => {
+    const headers = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+
     try {
       const response = await fetch(`/api/products/${productId}`, {
         method: "DELETE",
+        headers,
       });
       if (!response.ok && response.status !== 204) {
         throw new Error("Failed to remove product");
@@ -84,11 +95,4 @@ export const ProductProvider = ({ children }) => {
       {children}
     </ProductContext.Provider>
   );
-};
-
-export const useProducts = () => {
-  const context = useContext(ProductContext);
-  if (!context)
-    throw new Error("useProducts must be used within ProductProvider");
-  return context;
 };

@@ -3,6 +3,12 @@ import cors from "cors";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import {
+  createHmac,
+  pbkdf2Sync,
+  randomBytes,
+  timingSafeEqual,
+} from "node:crypto";
 import sqlite3 from "sqlite3";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -16,6 +22,7 @@ if (!fs.existsSync(databaseDir)) {
 const db = new sqlite3.Database(databasePath);
 const app = express();
 const PORT = process.env.PORT || 4000;
+const JWT_SECRET = process.env.JWT_SECRET || "gadgethive-development-secret";
 
 app.use(cors());
 app.use(express.json());
@@ -43,6 +50,130 @@ const allAsync = (sql, params = []) =>
       resolve(rows);
     });
   });
+
+const toBase64Url = (value) =>
+  Buffer.from(value)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
+
+const fromBase64Url = (value) =>
+  Buffer.from(value.replace(/-/g, "+").replace(/_/g, "/"), "base64");
+
+const hashPassword = (password) => {
+  const salt = randomBytes(16).toString("hex");
+  const hash = pbkdf2Sync(password, salt, 310000, 64, "sha256").toString(
+    "hex",
+  );
+  return `${salt}:${hash}`;
+};
+
+const verifyPassword = (password, storedHash) => {
+  const [salt, hash] = storedHash.split(":");
+  const derivedHash = pbkdf2Sync(
+    password,
+    salt,
+    310000,
+    64,
+    "sha256",
+  ).toString("hex");
+  return (
+    hash.length === derivedHash.length &&
+    timingSafeEqual(Buffer.from(hash), Buffer.from(derivedHash))
+  );
+};
+
+const formatUser = (row) =>
+  row && {
+    id: row.id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    email: row.email,
+    phone: row.phone,
+    role: row.role,
+    createdAt: row.created_at,
+  };
+
+const signToken = (user) => {
+  const payload = JSON.stringify({
+    sub: user.id,
+    email: user.email,
+    role: user.role,
+    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
+  });
+  const encodedPayload = toBase64Url(payload);
+  const signature = toBase64Url(
+    createHmac("sha256", JWT_SECRET).update(encodedPayload).digest(),
+  );
+  return `${encodedPayload}.${signature}`;
+};
+
+const verifyToken = (token) => {
+  try {
+    const [encodedPayload, signature] = token.split(".");
+    if (!encodedPayload || !signature) return null;
+
+    const expectedSignature = toBase64Url(
+      createHmac("sha256", JWT_SECRET).update(encodedPayload).digest(),
+    );
+    const signatureBuffer = fromBase64Url(signature);
+    const expectedSignatureBuffer = fromBase64Url(expectedSignature);
+
+    if (
+      signatureBuffer.length !== expectedSignatureBuffer.length ||
+      !timingSafeEqual(signatureBuffer, expectedSignatureBuffer)
+    ) {
+      return null;
+    }
+
+    const payload = JSON.parse(fromBase64Url(encodedPayload).toString("utf8"));
+    if (!payload.exp || payload.exp * 1000 < Date.now()) return null;
+
+    return payload;
+  } catch {
+    return null;
+  }
+};
+
+const authenticateToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : null;
+
+    if (!token) {
+      return res.status(401).json({ error: "Authentication required." });
+    }
+
+    const payload = verifyToken(token);
+    if (!payload) {
+      return res.status(401).json({ error: "Invalid or expired session." });
+    }
+
+    const user = await getAsync(
+      `SELECT id, first_name, last_name, email, phone, role FROM users WHERE id = ?;`,
+      [payload.sub],
+    );
+
+    if (!user) {
+      return res.status(401).json({ error: "Session no longer exists." });
+    }
+
+    req.user = formatUser(user);
+    next();
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const requireAdmin = (req, res, next) => {
+  if (req.user?.role !== "admin") {
+    return res.status(403).json({ error: "Admin access required." });
+  }
+  next();
+};
 
 const formatProduct = (row) => ({
   id: row.id,
@@ -104,6 +235,35 @@ const initDatabase = async () => {
   `);
 
   await runAsync(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      first_name TEXT NOT NULL,
+      last_name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      phone TEXT,
+      password_hash TEXT NOT NULL,
+      role TEXT DEFAULT 'customer',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  const adminRow = await getAsync(`SELECT id FROM users WHERE role = 'admin';`);
+  if (!adminRow) {
+    await runAsync(
+      `INSERT INTO users (first_name, last_name, email, phone, password_hash, role)
+       VALUES (?, ?, ?, ?, ?, ?);`,
+      [
+        "Store",
+        "Owner",
+        "admin@gadgethive.com",
+        "",
+        hashPassword("admin123"),
+        "admin",
+      ],
+    );
+  }
+
+  await runAsync(`
     CREATE TABLE IF NOT EXISTS orders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       customer_id INTEGER,
@@ -137,7 +297,7 @@ const initDatabase = async () => {
   if (countRow?.count === 0) {
     const { products, categories } = await import("./src/data/products.js");
 
-    const categoryStmt = await runAsync(`BEGIN TRANSACTION;`);
+    await runAsync(`BEGIN TRANSACTION;`);
     for (const category of categories) {
       await runAsync(
         `INSERT OR IGNORE INTO categories (name, slug, description) VALUES (?, ?, ?);`,
@@ -212,7 +372,86 @@ app.get("/api/products/:id", async (req, res) => {
   }
 });
 
-app.post("/api/products", async (req, res) => {
+app.post("/api/auth/signup", async (req, res) => {
+  try {
+    const { firstName, lastName, email, phone, password } = req.body;
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedFirstName = String(firstName || "").trim();
+    const normalizedLastName = String(lastName || "").trim();
+
+    if (
+      !normalizedFirstName ||
+      !normalizedLastName ||
+      !normalizedEmail ||
+      !password ||
+      password.length < 6
+    ) {
+      return res.status(400).json({
+        error: "First name, last name, email, and a 6+ character password are required.",
+      });
+    }
+
+    const existingUser = await getAsync(
+      `SELECT id FROM users WHERE email = ?;`,
+      [normalizedEmail],
+    );
+    if (existingUser) {
+      return res.status(409).json({ error: "An account with this email exists." });
+    }
+
+    const result = await runAsync(
+      `INSERT INTO users (first_name, last_name, email, phone, password_hash, role)
+       VALUES (?, ?, ?, ?, ?, 'customer');`,
+      [
+        normalizedFirstName,
+        normalizedLastName,
+        normalizedEmail,
+        String(phone || "").trim(),
+        hashPassword(password),
+      ],
+    );
+
+    const userRow = await getAsync(`SELECT * FROM users WHERE id = ?;`, [
+      result.lastID,
+    ]);
+    const user = formatUser(userRow);
+
+    res.status(201).json({ user, token: signToken(user) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+
+    if (!normalizedEmail || !password) {
+      return res.status(400).json({ error: "Email and password are required." });
+    }
+
+    const userRow = await getAsync(
+      `SELECT * FROM users WHERE email = ?;`,
+      [normalizedEmail],
+    );
+
+    if (!userRow || !verifyPassword(password, userRow.password_hash)) {
+      return res.status(401).json({ error: "Invalid email or password." });
+    }
+
+    const user = formatUser(userRow);
+    res.json({ user, token: signToken(user) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/auth/me", authenticateToken, async (req, res) => {
+  res.json({ user: req.user });
+});
+
+app.post("/api/products", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const {
       name,
@@ -256,7 +495,7 @@ app.post("/api/products", async (req, res) => {
   }
 });
 
-app.delete("/api/products/:id", async (req, res) => {
+app.delete("/api/products/:id", authenticateToken, requireAdmin, async (req, res) => {
   try {
     await runAsync(`DELETE FROM products WHERE id = ?;`, [req.params.id]);
     res.status(204).send();
@@ -343,12 +582,10 @@ app.get("/api/health", (req, res) => {
 initDatabase()
   .then(() => {
     app.listen(PORT, () => {
-      // eslint-disable-next-line no-console
       console.log(`Backend API running on http://localhost:${PORT}`);
     });
   })
   .catch((error) => {
-    // eslint-disable-next-line no-console
     console.error("Failed to initialize database:", error);
     process.exit(1);
   });

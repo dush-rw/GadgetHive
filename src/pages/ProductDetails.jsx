@@ -13,7 +13,7 @@ import {
   Plus,
   Search,
 } from "lucide-react";
-import { useProducts } from "../context/ProductContext";
+import { useProducts } from "../context/useProducts";
 import { useCart } from "../context/CartContext";
 import ProductCard from "../components/ProductCard";
 

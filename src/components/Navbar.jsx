@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { ShoppingCart, Menu, X, Zap, Search } from "lucide-react";
+import { ShoppingCart, Menu, X, Zap, Search, User, LogOut } from "lucide-react";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/useAuth";
 
 export default function Navbar() {
   const { cartCount } = useCart();
+  const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -81,12 +83,45 @@ export default function Navbar() {
             </Link>
 
             <div className="hidden sm:flex items-center gap-2">
-              <Link
-                to="/admin"
-                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all duration-200 border border-transparent hover:border-indigo-200"
-              >
-                Admin
-              </Link>
+              {user?.role === "admin" && (
+                <Link
+                  to="/admin"
+                  className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all duration-200 border border-transparent hover:border-indigo-200"
+                >
+                  Admin
+                </Link>
+              )}
+              {user ? (
+                <>
+                  <div className="px-4 py-2 text-sm font-semibold text-slate-600 flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    {user.firstName || user.email}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all duration-200 border border-transparent hover:border-indigo-200"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all duration-200 border border-transparent hover:border-indigo-200"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/signup"
+                    className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-2xl transition-all duration-200 shadow-lg shadow-indigo-500/20"
+                  >
+                    Sign up
+                  </Link>
+                </>
+              )}
             </div>
 
             <button
@@ -124,6 +159,49 @@ export default function Navbar() {
                   <Search className="w-4 h-4" />
                   Search Products
                 </Link>
+                {user?.role === "admin" && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setIsOpen(false)}
+                    className="mt-1 px-5 py-3.5 text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all duration-200 font-semibold text-sm flex items-center gap-3 border border-transparent hover:border-indigo-200"
+                  >
+                    Admin Dashboard
+                  </Link>
+                )}
+                {user ? (
+                  <div className="mt-1 px-5 py-3.5 text-sm font-semibold text-slate-600 flex items-center gap-3 border border-transparent rounded-xl">
+                    <User className="w-4 h-4" />
+                    Signed in as {user.firstName || user.email}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        logout();
+                        setIsOpen(false);
+                      }}
+                      className="ml-auto inline-flex items-center gap-1 text-rose-600 hover:text-rose-700"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <Link
+                      to="/login"
+                      onClick={() => setIsOpen(false)}
+                      className="px-4 py-3 text-center text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl"
+                    >
+                      Login
+                    </Link>
+                    <Link
+                      to="/signup"
+                      onClick={() => setIsOpen(false)}
+                      className="px-4 py-3 text-center text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"
+                    >
+                      Sign up
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </div>

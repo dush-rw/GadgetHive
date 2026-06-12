@@ -33,11 +33,8 @@ export default function Checkout() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const [errorMessage, setErrorMessage] = useState("");
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMessage("");
 
     if (step < 3) {
       setStep(step + 1);
@@ -78,9 +75,7 @@ export default function Checkout() {
       setIsComplete(true);
       clearCart();
     } catch (error) {
-      setErrorMessage(
-        error.message || "Unable to submit order. Please try again.",
-      );
+      console.error("Checkout error:", error);
     }
   };
 

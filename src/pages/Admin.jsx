@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useProducts } from "../context/ProductContext";
+import { useProducts } from "../context/useProducts";
 import { Link } from "react-router-dom";
 import { Plus, Trash2, ArrowLeft } from "lucide-react";
 

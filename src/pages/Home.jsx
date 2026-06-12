@@ -8,7 +8,7 @@ import {
   CreditCard,
   Star,
 } from "lucide-react";
-import { useProducts } from "../context/ProductContext";
+import { useProducts } from "../context/useProducts";
 import ProductCard from "../components/ProductCard";
 
 export default function Home() {

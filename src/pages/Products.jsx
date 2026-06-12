@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Search, SlidersHorizontal } from "lucide-react";
 import ProductCard from "../components/ProductCard";
-import { useProducts } from "../context/ProductContext";
+import { useProducts } from "../context/useProducts";
 import { categories } from "../data/products";
 
 export default function Products() {
@@ -41,7 +41,7 @@ export default function Products() {
       default:
         return filtered;
     }
-  }, [categoryParam, search, sortBy]);
+  }, [categoryParam, products, search, sortBy]);
 
   const handleCategoryChange = (catId) => {
     if (catId === "all") {
