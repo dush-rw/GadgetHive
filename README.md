@@ -1,83 +1,92 @@
 # GadgetHive
 
-GadgetHive is a React + Vite e-commerce application for a gadget store. It includes product browsing, a shopping cart, checkout flow, and a backend server using Express with PostgreSQL database.
+GadgetHive is a full-stack e-commerce application for selling electronics, smart devices, and tech accessories. It features a React + Vite frontend, Express backend with JWT authentication, and PostgreSQL database.
 
 ## Features
 
-- Product listing and details pages
-- Cart management with quantity updates
-- Checkout page with order summary
-- Responsive layout for desktop and mobile
-- Backend API served with Express
-- PostgreSQL database for data persistence
-- Docker-friendly setup with production-ready configuration
+- Product listing and filtering by category
+- Shopping cart with quantity management
+- Secure checkout process
 - User authentication with JWT tokens
 - Admin panel for product management
+- Responsive mobile-first design
+- Docker containerization for production
+- PostgreSQL database with persistent storage
+- Nginx reverse proxy for routing
+- Production-ready deployment configuration
 
-## Technologies
+## Tech Stack
 
+**Frontend:**
 - React 19
-- Vite
+- Vite (build tool)
 - Tailwind CSS 4
 - React Router DOM 7
-- Express
-- PostgreSQL
-- Lucide React icons
-- Docker & Docker Compose
+- Lucide React (icons)
 
-## Project structure
+**Backend:**
+- Node.js with Express
+- SQLite3 for development
+- JWT authentication
+- PBKDF2 password hashing
+
+**DevOps:**
+- Docker & Docker Compose
+- Nginx reverse proxy
+- PostgreSQL for production
+
+## Project Structure
 
 ```
 GadgetHive/
-├── public/                # Static assets
-├── src/                   # React application source
-│   ├── components/        # UI components
-│   ├── context/           # React context providers/hooks
-│   ├── data/              # Static product data
-│   ├── pages/             # Route pages
+├── src/                      # React application
+│   ├── components/           # Reusable components
+│   ├── context/              # React context
+│   ├── data/                 # Product data
+│   ├── pages/                # Route pages
 │   ├── App.jsx
-│   ├── index.css
-│   └── main.jsx
-├── Dockerfile             # Frontend production build
-├── Dockerfile.backend     # Backend production build
-├── docker-compose.yml     # Production orchestration with PostgreSQL
-├── docker-compose.dev.yml # Development orchestration
-├── nginx.conf             # Nginx reverse proxy configuration
+│   ├── main.jsx
+│   └── index.css
+├── public/                   # Static assets
+├── server.js                 # Express backend
+├── Dockerfile                # Frontend production
+├── Dockerfile.backend        # Backend production
+├── docker-compose.yml        # Production orchestration
+├── nginx.conf                # Nginx configuration
+├── vite.config.js            # Vite configuration
 ├── package.json
-├── vite.config.js
-├── .env.example           # Environment variables template
-├── LICENSE
 └── README.md
 ```
 
-## Setup
+## Getting Started
 
 ### Prerequisites
 
-- Node.js 18 or higher
-- npm
+- Node.js 18+
+- npm or yarn
 - Docker & Docker Compose (for containerized deployment)
 
-### Install dependencies
+### Installation
 
 ```bash
+# Install dependencies
 npm install
 ```
 
-### Local Development
+### Development
 
-#### Frontend only:
+**Frontend only:**
 ```bash
 npm run dev
 ```
-Open `http://localhost:5173`.
+Open http://localhost:5173
 
-#### Full stack with dev docker-compose:
+**Full stack (with Docker):**
 ```bash
 docker compose -f docker-compose.dev.yml up --build
 ```
 
-### Build for production
+### Production Build
 
 ```bash
 npm run build
@@ -86,137 +95,85 @@ npm run preview
 
 ## Docker Deployment
 
-### Using Docker Compose (Recommended)
+### Quick Start
 
-1. **Create environment file:**
+1. Create environment file:
 ```bash
 cp .env.example .env
 ```
 
-2. **Update environment variables in `.env`:**
+2. Update `.env` with your configuration:
 ```env
-DB_PASSWORD=your_secure_password_here
-JWT_SECRET=your_secure_jwt_secret_here
+DB_PASSWORD=your_secure_password
+JWT_SECRET=your_secure_jwt_secret
 ```
 
-3. **Start services:**
+3. Deploy:
 ```bash
 docker compose up --build
 ```
 
-4. **Access application:**
-   - Frontend: `http://localhost:3000`
-   - Backend API: `http://localhost:4000`
-   - Database: `localhost:5432`
-
-### Manual Docker Build
-
-```bash
-# Build frontend
-docker build -t gadgethive-frontend .
-
-# Build backend
-docker build -f Dockerfile.backend -t gadgethive-backend .
-
-# Run with external PostgreSQL
-docker run -p 3000:80 gadgethive-frontend
-docker run -p 4000:4000 -e DATABASE_URL=postgresql://... gadgethive-backend
-```
-
-## Production Deployment
+**Access:**
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:4000
+- Database: localhost:5432
 
 ### Environment Variables
 
-All these must be set in production (see `.env.example`):
-
-- `JWT_SECRET` - Secure random string for JWT signing
+**Required for production:**
+- `JWT_SECRET` - Secret key for JWT signing
 - `DB_PASSWORD` - PostgreSQL password
-- `NODE_ENV` - Set to `production`
-- `DOMAIN` - Your domain name for security headers
-
-### Deployment Platforms
-
-This app is ready for deployment on:
-
-- **AWS (ECS/Fargate)**
-- **DigitalOcean (App Platform)**
-- **Heroku**
-- **Railway**
-- **Render**
-- **Self-hosted Docker servers**
-
-### Database Persistence
-
-The PostgreSQL database is persisted in Docker volumes:
-- Volume name: `gadgethive_db_data`
-- Data persists across container restarts
-
-### Security Features
-
-- JWT-based authentication
-- PBKDF2 password hashing with salt
-- Timing-safe token verification
-- CORS configuration
-- Security headers (X-Frame-Options, X-Content-Type-Options, X-XSS-Protection)
-- Gzip compression
-- Role-based access control (admin/customer)
+- `NODE_ENV` - Set to "production"
+- `PORT` - Backend port (default: 4000)
+- `DOMAIN` - Your domain name
 
 ## API Endpoints
 
-### Public Endpoints
-- `GET /api/categories` - List all categories
-- `GET /api/products` - List all products
-- `GET /api/products?category=audio` - Filter by category
-- `GET /api/products/:id` - Get product details
-- `POST /api/orders` - Create an order
-- `POST /api/auth/signup` - Register new user
-- `POST /api/auth/login` - Login user
+### Public
 - `GET /api/health` - Health check
+- `GET /api/categories` - List categories
+- `GET /api/products` - List products
+- `GET /api/products/:id` - Product details
+- `POST /api/auth/signup` - Register user
+- `POST /api/auth/login` - Login user
+- `POST /api/orders` - Create order
 
-### Protected Endpoints (require JWT token)
-- `GET /api/auth/me` - Get current user info
-- `POST /api/products` - Create product (admin only)
-- `DELETE /api/products/:id` - Delete product (admin only)
+### Protected (require JWT token)
+- `GET /api/auth/me` - Current user
+- `POST /api/products` - Create product (admin)
+- `DELETE /api/products/:id` - Delete product (admin)
 
-## Default Admin Credentials
+## Default Admin Account
 
-**⚠️ Change these immediately in production:**
-- Email: `admin@gadgethive.com`
-- Password: `admin123`
+⚠️ **Change in production:**
+- Email: admin@gadgethive.com
+- Password: admin123
 
-## Troubleshooting
+## Security Features
 
-### Database won't connect
-- Ensure PostgreSQL container is running: `docker ps`
-- Check DATABASE_URL in .env
-- Verify DB_PASSWORD matches
+- JWT-based authentication
+- PBKDF2 password hashing with salt (310,000 iterations)
+- Timing-safe token verification
+- CORS configuration
+- Security headers (X-Frame-Options, X-XSS-Protection)
+- Gzip compression
+- Rate limiting ready
+- Role-based access control
 
-### Frontend can't reach API
-- Check nginx.conf proxy_pass configuration
-- Ensure backend container is running
-- Verify port mappings in docker-compose.yml
+## Deployment
 
-### Build fails in Docker
-- Clear Docker cache: `docker system prune`
-- Rebuild: `docker compose up --build`
-
-## Notes
-
-- Static product data is seeded from `src/data/products.js`
-- All data persists in PostgreSQL database
-- Update the repository URL after creating the GitHub repo
-- Use environment variables for all sensitive data
-
-## GitHub setup
-
-After creating the repository on GitHub, add the remote and push:
-
-```bash
-git remote add origin https://github.com/dush-rw/GadgetHive.git
-git branch -M main
-git push -u origin main
-```
+This application is ready for deployment on:
+- AWS (ECS, Fargate, EC2)
+- DigitalOcean (App Platform, Droplets)
+- Heroku
+- Railway.app
+- Render.com
+- Self-hosted Docker servers
 
 ## License
 
 MIT
+
+## Support
+
+For issues or questions, please create an issue in the repository.
