@@ -26,6 +26,16 @@ const JWT_SECRET = process.env.JWT_SECRET || "gadgethive-development-secret";
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "dist")));
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
+});
+
+app.get("/*", (req, res, next) => {
+  if (req.path.startsWith("/api/")) return next();
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
+});
 
 const runAsync = (sql, params = []) =>
   new Promise((resolve, reject) => {
@@ -63,21 +73,15 @@ const fromBase64Url = (value) =>
 
 const hashPassword = (password) => {
   const salt = randomBytes(16).toString("hex");
-  const hash = pbkdf2Sync(password, salt, 310000, 64, "sha256").toString(
-    "hex",
-  );
+  const hash = pbkdf2Sync(password, salt, 310000, 64, "sha256").toString("hex");
   return `${salt}:${hash}`;
 };
 
 const verifyPassword = (password, storedHash) => {
   const [salt, hash] = storedHash.split(":");
-  const derivedHash = pbkdf2Sync(
-    password,
-    salt,
-    310000,
-    64,
-    "sha256",
-  ).toString("hex");
+  const derivedHash = pbkdf2Sync(password, salt, 310000, 64, "sha256").toString(
+    "hex",
+  );
   return (
     hash.length === derivedHash.length &&
     timingSafeEqual(Buffer.from(hash), Buffer.from(derivedHash))
@@ -375,7 +379,9 @@ app.get("/api/products/:id", async (req, res) => {
 app.post("/api/auth/signup", async (req, res) => {
   try {
     const { firstName, lastName, email, phone, password } = req.body;
-    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedEmail = String(email || "")
+      .trim()
+      .toLowerCase();
     const normalizedFirstName = String(firstName || "").trim();
     const normalizedLastName = String(lastName || "").trim();
 
@@ -387,7 +393,8 @@ app.post("/api/auth/signup", async (req, res) => {
       password.length < 6
     ) {
       return res.status(400).json({
-        error: "First name, last name, email, and a 6+ character password are required.",
+        error:
+          "First name, last name, email, and a 6+ character password are required.",
       });
     }
 
@@ -396,7 +403,9 @@ app.post("/api/auth/signup", async (req, res) => {
       [normalizedEmail],
     );
     if (existingUser) {
-      return res.status(409).json({ error: "An account with this email exists." });
+      return res
+        .status(409)
+        .json({ error: "An account with this email exists." });
     }
 
     const result = await runAsync(
@@ -425,16 +434,19 @@ app.post("/api/auth/signup", async (req, res) => {
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedEmail = String(email || "")
+      .trim()
+      .toLowerCase();
 
     if (!normalizedEmail || !password) {
-      return res.status(400).json({ error: "Email and password are required." });
+      return res
+        .status(400)
+        .json({ error: "Email and password are required." });
     }
 
-    const userRow = await getAsync(
-      `SELECT * FROM users WHERE email = ?;`,
-      [normalizedEmail],
-    );
+    const userRow = await getAsync(`SELECT * FROM users WHERE email = ?;`, [
+      normalizedEmail,
+    ]);
 
     if (!userRow || !verifyPassword(password, userRow.password_hash)) {
       return res.status(401).json({ error: "Invalid email or password." });
@@ -495,14 +507,19 @@ app.post("/api/products", authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-app.delete("/api/products/:id", authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    await runAsync(`DELETE FROM products WHERE id = ?;`, [req.params.id]);
-    res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+app.delete(
+  "/api/products/:id",
+  authenticateToken,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      await runAsync(`DELETE FROM products WHERE id = ?;`, [req.params.id]);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
 
 app.post("/api/orders", async (req, res) => {
   try {
