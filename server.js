@@ -592,6 +592,57 @@ app.post("/api/orders", async (req, res) => {
   }
 });
 
+app.get("/api/orders", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const orders = await allAsync(`
+      SELECT 
+        o.id,
+        o.order_number,
+        o.status,
+        o.payment_method,
+        o.subtotal,
+        o.shipping_cost,
+        o.total,
+        o.notes,
+        o.created_at,
+        c.first_name,
+        c.last_name,
+        c.email,
+        c.phone,
+        c.address,
+        c.city
+      FROM orders o
+      LEFT JOIN customers c ON o.customer_id = c.id
+      ORDER BY o.created_at DESC;
+    `);
+
+    const ordersWithItems = await Promise.all(
+      orders.map(async (order) => {
+        const items = await allAsync(
+          `
+          SELECT 
+            oi.id,
+            oi.quantity,
+            oi.unit_price,
+            oi.total_price,
+            p.name,
+            p.image_url
+          FROM order_items oi
+          LEFT JOIN products p ON oi.product_id = p.id
+          WHERE oi.order_id = ?;
+          `,
+          [order.id],
+        );
+        return { ...order, items };
+      }),
+    );
+
+    res.json(ordersWithItems);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
