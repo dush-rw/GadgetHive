@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Package, Calendar, DollarSign, User, Phone, MapPin } from "lucide-react";
+import { useAuth } from "../context/useAuth";
 
 export default function Orders() {
+  const { token } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -11,21 +13,23 @@ export default function Orders() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          setError("Authentication required");
+        const authToken = token || localStorage.getItem("gadgethive-token");
+        
+        if (!authToken) {
+          setError("Authentication required. Please login as admin.");
           setLoading(false);
           return;
         }
 
         const response = await fetch("/api/orders", {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${authToken}`,
           },
         });
 
         if (!response.ok) {
-          throw new Error("Failed to fetch orders");
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to fetch orders");
         }
 
         const data = await response.json();
@@ -38,7 +42,7 @@ export default function Orders() {
     };
 
     fetchOrders();
-  }, []);
+  }, [token]);
 
   const toggleExpand = (orderId) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
