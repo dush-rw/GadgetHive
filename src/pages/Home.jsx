@@ -35,9 +35,9 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.06),transparent_50%)]"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_60%,rgba(245,158,11,0.06),transparent_50%)]"></div>
 
-        <div className="relative max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 pt-20 pb-24 lg:pt-32 lg:pb-36">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="space-y-7 animate-fadeInUp">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 lg:pt-32 pb-20 sm:pb-24 lg:pb-36">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+            <div className="space-y-6 sm:space-y-7 animate-fadeInUp">
               <div className="inline-flex items-center gap-2.5 bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-full border border-white/15 shadow-lg">
                 <Zap className="w-4 h-4 text-amber-400" />
                 <span className="text-sm font-semibold text-white/95 tracking-wide">
@@ -45,7 +45,7 @@ export default function Home() {
                 </span>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-[4.25rem] font-extrabold leading-[1.08] tracking-tight">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-[4.25rem] font-extrabold leading-[1.08] tracking-tight">
                 Discover the
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 mt-1">
                   Future of Tech
@@ -57,17 +57,17 @@ export default function Home() {
                 smart wearables — everything you need, delivered fast.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 pt-2">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
                 <Link
                   to="/products"
-                  className="inline-flex items-center justify-center px-7 py-4 bg-white text-indigo-700 font-bold rounded-2xl hover:bg-indigo-50 transition-all shadow-xl shadow-black/10 hover:shadow-2xl hover:-translate-y-0.5 group"
+                  className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 bg-white text-indigo-700 font-bold rounded-2xl hover:bg-indigo-50 transition-all shadow-xl shadow-black/10 hover:shadow-2xl hover:shadow-black/20 active:scale-95"
                 >
                   Shop Now
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                 </Link>
                 <Link
                   to="/products?category=audio"
-                  className="inline-flex items-center justify-center px-7 py-4 border-2 border-white/25 text-white font-bold rounded-2xl hover:bg-white/10 hover:border-white/40 transition-all backdrop-blur-sm"
+                  className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 border-2 border-white/25 text-white font-bold rounded-2xl hover:bg-white/10 hover:border-white/40 transition-all backdrop-blur active:scale-95"
                 >
                   Browse Audio
                 </Link>
@@ -131,21 +131,21 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-16 lg:py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-8">
+      <section className="py-12 sm:py-16 lg:py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
             {features.map((feature, index) => (
               <div
                 key={index}
-                className={`text-center p-6 lg:p-8 rounded-3xl hover:bg-slate-50 transition-all duration-300 group animate-fadeInUp stagger-${index + 1}`}
+                className={`text-center p-4 sm:p-6 lg:p-8 rounded-3xl hover:bg-slate-50 transition-all duration-300 group animate-fadeInUp stagger-${index + 1}`}
               >
-                <div className="w-16 h-16 bg-indigo-50 group-hover:bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-5 transition-colors duration-300">
-                  <feature.icon className="w-7 h-7 text-indigo-600" />
+                <div className="w-12 sm:w-16 h-12 sm:h-16 bg-indigo-50 group-hover:bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-5 transition-colors duration-300">
+                  <feature.icon className="w-5 sm:w-7 h-5 sm:h-7 text-indigo-600" />
                 </div>
-                <h3 className="font-bold text-slate-900 mb-1.5 text-[15px]">
+                <h3 className="font-bold text-slate-900 mb-1.5 text-sm sm:text-base">
                   {feature.title}
                 </h3>
-                <p className="text-slate-500 text-sm leading-relaxed">
+                <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
                   {feature.desc}
                 </p>
               </div>
@@ -154,31 +154,31 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-16 lg:py-24 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-10 lg:mb-14">
+      <section className="py-12 sm:py-16 lg:py-24 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8 lg:mb-14">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold uppercase tracking-wider mb-3">
                 <Star className="w-3 h-3 fill-current" />
                 Curated for you
               </div>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
                 Featured Products
               </h2>
-              <p className="text-slate-500 mt-2 max-w-lg text-[15px]">
+              <p className="text-slate-500 mt-2 max-w-lg text-sm sm:text-base">
                 Hand-picked gadgets that our customers love the most.
               </p>
             </div>
             <Link
               to="/products"
-              className="inline-flex items-center text-indigo-600 hover:text-indigo-700 font-bold text-sm group whitespace-nowrap"
+              className="inline-flex items-center text-indigo-600 hover:text-indigo-700 font-bold text-sm group whitespace-nowrap mt-4 sm:mt-0"
             >
               View All Products
               <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
             {featuredProducts.slice(0, 4).map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -186,23 +186,23 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="relative py-16 lg:py-24 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-900 text-white overflow-hidden">
+      <section className="relative py-12 sm:py-16 lg:py-24 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-900 text-white overflow-hidden">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/[0.03] rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-amber-400/[0.06] rounded-full blur-3xl translate-y-1/4 -translate-x-1/4"></div>
 
-        <div className="relative max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 text-center">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-xs font-bold uppercase tracking-wider mb-5 border border-white/10">
             🔥 Limited Time Offer
           </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold mb-4 tracking-tight">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold mb-4 tracking-tight">
             Hot Deals This Week
           </h2>
-          <p className="text-indigo-100/80 mb-12 max-w-xl mx-auto text-[15px] leading-relaxed">
+          <p className="text-indigo-100/80 mb-10 sm:mb-12 max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
             Don't miss out on these amazing discounts. Free delivery on all
             deals!
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
             {deals.slice(0, 3).map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -210,19 +210,19 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-16 lg:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 text-center bfrfooter">
+      <section className="py-12 sm:py-16 lg:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center bfrfooter">
           <div className="max-w-2xl mx-auto">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">
               Join 10,000+ Happy Customers
             </h2>
-            <p className="text-slate-500 mb-10 text-[15px] leading-relaxed">
+            <p className="text-slate-500 mb-8 sm:mb-10 text-sm sm:text-base leading-relaxed">
               Experience the best tech shopping in Rwanda with fast delivery,
               secure payments, and dedicated support.
             </p>
             <Link
               to="/products"
-              className="start-shop inline-flex items-center justify-center px-8 py-4 bg-slate-900 hover:bg-indigo-600 text-white font-bold rounded-2xl transition-all shadow-xl shadow-slate-900/10 hover:shadow-2xl hover:shadow-indigo-500/25 hover:-translate-y-0.5 group"
+              className="start-shop inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 bg-slate-900 hover:bg-indigo-600 text-white font-bold rounded-2xl transition-all shadow-xl shadow-slate-900/10 active:scale-95"
             >
               Start Shopping Today
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
