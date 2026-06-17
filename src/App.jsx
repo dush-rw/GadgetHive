@@ -15,6 +15,7 @@ import Contact from "./pages/Contact";
 import Admin from "./pages/Admin";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Orders from "./pages/Orders";
 
 function App() {
   return (
@@ -38,6 +39,14 @@ function App() {
                     element={
                       <ProtectedRoute role="admin">
                         <Admin />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/orders"
+                    element={
+                      <ProtectedRoute role="admin">
+                        <Orders />
                       </ProtectedRoute>
                     }
                   />
