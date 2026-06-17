@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useProducts } from "../context/useProducts";
 import { Link } from "react-router-dom";
-import { Plus, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, ShoppingBag } from "lucide-react";
 
 export default function Admin() {
   const { products, addProduct, removeProduct } = useProducts();
@@ -93,9 +93,20 @@ export default function Admin() {
           <div className="bg-indigo-600 text-white p-10 sm:p-12">
             <h1 className="text-4xl font-extrabold">Store Owner Dashboard</h1>
             <p className="mt-3 text-slate-100 max-w-2xl">
-              Add or remove products here. Checkout is available to all
-              visitors.
+              Manage products and view customer orders.
             </p>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="border-b border-slate-200 bg-slate-50 px-6 sm:px-10 py-4">
+            <div className="flex gap-3 flex-wrap">
+              <Link
+                to="/orders"
+                className="inline-flex items-center gap-2 rounded-3xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
+              >
+                <ShoppingBag className="w-4 h-4" /> View Orders
+              </Link>
+            </div>
           </div>
 
           <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] p-6 sm:p-10">
